@@ -1,0 +1,1223 @@
+{
+  "name": "Agentic AI HR-Resume Screening workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "HR Resume Upload – AI Agent Screening",
+        "formDescription": "Upload PDF resumes for automated screening and job description matching",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "resumes",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Roles",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Accountant"
+                  },
+                  {
+                    "option": "Advocate"
+                  },
+                  {
+                    "option": "Agriculture"
+                  },
+                  {
+                    "option": "Arts "
+                  },
+                  {
+                    "option": "Automobile"
+                  },
+                  {
+                    "option": "Banking"
+                  },
+                  {
+                    "option": "Bpo"
+                  },
+                  {
+                    "option": "Business Development"
+                  },
+                  {
+                    "option": "Chef"
+                  },
+                  {
+                    "option": "Designer"
+                  },
+                  {
+                    "option": "Digital-Media"
+                  },
+                  {
+                    "option": "Engineering"
+                  },
+                  {
+                    "option": "Finance"
+                  },
+                  {
+                    "option": "Fitness"
+                  },
+                  {
+                    "option": "Healthcare"
+                  },
+                  {
+                    "option": "Hr"
+                  },
+                  {
+                    "option": "Information Technology"
+                  },
+                  {
+                    "option": "Public-Relations"
+                  },
+                  {
+                    "option": "Sales"
+                  },
+                  {
+                    "option": "Teacher"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a9e1cdaa-1b09-4ee4-a740-a980905cb5b5",
+      "name": "Resume Submission Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        17632,
+        64
+      ],
+      "webhookId": "2928542d-d555-4368-9cfc-6673b3991707"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=resumes",
+        "options": {}
+      },
+      "id": "ddd50a6b-e3da-4705-828f-578cf3507f8f",
+      "name": "Extract Resume Content (PDF)",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        17952,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ Number($json.matchScore) }}",
+                    "rightValue": "={{ Number($json.passingScore) }}",
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "id": "ae1eb069-bd3e-4b43-ae49-36d56e75f29f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Shortlisted"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ Number($json.matchScore) }}",
+                    "rightValue": "={{ Number($json.passingScore) }}",
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "id": "29492cb3-3545-4ff4-a40a-de5787dfc7ae"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Rejected"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "extra",
+          "ignoreCase": true,
+          "allMatchingOutputs": false
+        }
+      },
+      "id": "bfe9e369-d037-4ed4-9360-6ee9dcd3ec55",
+      "name": "Decision / Shortlist Logic",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        19328,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "jobDescription",
+              "value": "We are looking for a skilled software engineer with 5+ years of experience",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "passingScore",
+              "value": 70,
+              "type": "number"
+            },
+            {
+              "id": "id-3",
+              "name": "maxScore",
+              "value": 100,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "ab12fa26-3fd1-420c-88dd-da78252907ca",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        18496,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the resume strictly using ONLY the provided resume text.\n\nJob Description:\n{{ $json.jobDescription }}\n\nResume Text:\n{{ $node[\"Extract Resume Content (PDF)\"].json.text }}\n\nRules:\n- DO NOT guess any value\n- DO NOT use example names like John Doe\n- If a value is missing, return null\n- Use ONLY resume text\n\nReturn ONLY valid JSON:\n\n{\n  \"candidateName\": null,\n  \"email\": null,\n  \"phone\": null,\n  \"yearsOfExperience\": 0,\n  \"skills\": \"\",\n  \"matchScore\": 0,\n  \"matchReason\": \"\",\n  \"recommendation\": \"\"\n}",
+        "hasOutputParser": true
+      },
+      "id": "3fec3b43-6423-4bea-ad7d-b4de63b9a4d7",
+      "name": "AI Scoring / JD Match1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        18752,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# HR Resume Screening Agentic AI:",
+        "height": 80,
+        "width": 582,
+        "color": 6
+      },
+      "id": "363e51ae-cdea-4a94-a054-3d54a3d103f3",
+      "name": "Sticky Note10",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        18784,
+        -592
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"candidateName\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"email\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"phone\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"yearsOfExperience\": {\n\t\t\t\"type\": \"number\"\n\t\t},\n\t\t\"skills\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"matchScore\": {\n\t\t\t\"type\": \"number\"\n\t\t},\n\t\t\"matchReason\": {\n\t\t\t\"type\": \"string\"\n\t\t},\n\t\t\"recommendation\": {\n\t\t\t\"type\": \"string\"\n\t\t}\n\t}\n}"
+      },
+      "id": "b63ce9cb-80db-4fae-ba62-c52a10bcf7fa",
+      "name": "Parse JSON Output",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        18960,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "candidateName",
+              "value": "={{ $json.output.candidateName }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "email",
+              "value": "={{ $json.output.email }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "phone",
+              "value": "={{ $json.output.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "yearsOfExperience",
+              "value": "={{ $json.output.yearsOfExperience }}",
+              "type": "number"
+            },
+            {
+              "id": "id-5",
+              "name": "skills",
+              "value": "={{ $json.output.skills }}",
+              "type": "string"
+            },
+            {
+              "id": "id-6",
+              "name": "matchScore",
+              "value": "={{ $json.output.matchScore }}",
+              "type": "number"
+            },
+            {
+              "id": "id-7",
+              "name": "matchReason",
+              "value": "={{ $json.output.matchReason }}",
+              "type": "string"
+            },
+            {
+              "id": "id-8",
+              "name": "recommendation",
+              "value": "={{ $json.output.recommendation }}",
+              "type": "string"
+            },
+            {
+              "id": "id-9",
+              "name": "passingScore",
+              "value": "={{ $('Workflow Configuration').first().json.passingScore }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a49a9489-247c-4972-933a-62d3cbc04441",
+      "name": "Flatten AI Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        19088,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "1. This is the ENTRY POINT of the workflow.\n\n2. Candidates upload their resume here.   \n\n3. Why this node is used?\nTo accept resumes from candidates\nTo trigger the workflow automatically\nTo support real-world usage (website, HR portal)",
+        "height": 528,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        17568,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "6397a71b-dd8e-42fe-9314-127ec3a3cc9d",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "1. This node converts the PDF into readable text.  \n\n2. Why this node is used?\nAI needs plain text\nExtracts:\nResume text\nPage count.",
+        "height": 528
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        17872,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "3861db50-750c-4b3a-a6bd-55b789c48952",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "1. This node adds control parameters to the workflow. \n\n2. Why this node is used?\nTo define:\nJob Description\nPassing score\nMax score.",
+        "height": 528,
+        "width": 224,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        18424,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "6f30a7da-02d1-47f5-9c5f-68a23acdc472",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "1. A controller / orchestrator node\nIt does NOT think\n\n2. What does it do?\nSends data to Gemini\nDefines the prompt\nEnforces output format\nTells Gemini what to return.",
+        "height": 512,
+        "width": 304,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        18704,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "b6179028-30a3-4a21-b71e-e2bbb9785467",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "1. This node normalizes AI output into clean top-level fields.",
+        "height": 512,
+        "width": 192
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        19040,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "f3a4a8ed-a963-48b9-84fc-6468158a9fca",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "1. This node decides pass or fail.   \n\n2. Why this node is used?\nTo automate HR decisions:\nIf score ≥ passingScore → Shortlisted\nElse → Rejected",
+        "height": 512,
+        "width": 304,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        19264,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "c292ee7c-90af-4006-87db-3bbd05201737",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "1. Stores candidate results permanently.\n\n2. What is stored:\nName\nEmail\nSkills\nMatch score\nRecommendation\nTimestamp.\n\n3. Why this node is needed:\nAudit & tracking\nHR reporting\nATS integration\nCompliance.",
+        "height": 512,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        19600,
+        -448
+      ],
+      "typeVersion": 1,
+      "id": "b05ef57b-a361-44e6-b5f9-75d8026c4781",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "1. Automatically sends email to qualified candidates.  \n\n2. Why this node is needed:\nInstant communication\nProfessional experience\nSaves HR time.",
+        "height": 432,
+        "width": 278,
+        "color": 6
+      },
+      "id": "5e6c1121-d8d6-4ab6-9c7a-403cec3fa234",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        20192,
+        -400
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n1. Sends polite rejection email. \n\n2. Why this node is needed:\nCandidate experience\nBrand reputation\nHR professionalism.",
+        "height": 480,
+        "width": 278,
+        "color": 6
+      },
+      "id": "b3b8754a-a756-4ed2-88ed-de237746d11f",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        20224,
+        192
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3-flash-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        18688,
+        336
+      ],
+      "id": "90ce316c-802c-4a1d-b89d-c361ff424ea8",
+      "name": "Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "rTcub0rVvcmyHvsb",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n1. The actual AI model\nDoes thinking, reasoning, understanding\n\n2. What does it do?\nReads resume text\nUnderstands job description\nMatches skills\nGenerates score & explanation.",
+        "height": 496,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        18608,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "d4dfc871-360d-47a6-96ea-0ebc430ef669",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n1. AI returns text, even if it looks like JSON.\nThis node converts AI text into real JSON objects. \n\n2. Why this node is needed:\nOther nodes cannot read text JSON\nThey require real JSON fields.\n\n",
+        "height": 496,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        18880,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "4506d124-d4bb-4d5a-9bfa-42d171aaa92a",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Congratulations! You've Been Shortlisted - Nexxora",
+        "message": "=Dear {{ $json.candidateName }},\n\nCongratulations! We are pleased to inform you that you have been shortlisted for the position based on your resume screening.\n\n**Your Match Score:** {{ $json.matchScore }}/100\n\n**Why You Were Selected:**\n{{ $json.matchReason }}\n\n**Next Steps:**\nOur HR team will contact you within the next 2-3 business days to schedule an interview. Please keep an eye on your email and phone for further communication.\n\nIf you have any questions in the meantime, please don't hesitate to reach out.\n\nBest regards,\nNexxora HR Team",
+        "options": {}
+      },
+      "id": "e55e21a2-1912-45fc-aebe-974e031722cc",
+      "name": "Send Shortlisted Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        20272,
+        -128
+      ],
+      "webhookId": "792acf3b-2fc7-402f-a55e-83c1ea3ae42a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "EmXSO3CVeh3kyHdS",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Thank You for Your Application - Nexxora",
+        "message": "Dear Candidate,\n\nThank you for taking the time to apply for the position at Nexxora. We appreciate your interest in joining our team.\n\nAfter careful review of your application, we regret to inform you that we will not be moving forward with your candidacy at this time. This decision was not easy, as we received many qualified applications.\n\nWe encourage you to continue exploring opportunities with Nexxora in the future, as your skills and experience may be a better fit for other roles.\n\nWe wish you all the best in your job search and future endeavors.\n\nBest regards,\nNexxora HR Team",
+        "options": {}
+      },
+      "id": "1ab27ddf-a018-458a-899a-795ab6b9a6a6",
+      "name": "Send Rejected Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        20288,
+        224
+      ],
+      "webhookId": "258c7a9c-bba8-4fb5-a947-135bb69e4fd0",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "EmXSO3CVeh3kyHdS",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $('Extract Resume Content (PDF)').item.json.text }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $('Extract Resume Content (PDF)').item.json.text }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $('Extract Resume Content (PDF)').item.json.text.length }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "id": "ccea72d9-aa0b-4174-9cdf-0508b66b9a28",
+      "name": "Validate Resume Text",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        18208,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "name",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "name",
+          "value": "resume_screening_results"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate_name": "={{ $json.candidateName }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "years_of_experience": "={{ $json.yearsOfExperience }}",
+            "skills": "={{ $json.skills.split(',').map(s => s.trim()) }}",
+            "match_score": "={{ $json.matchScore }}",
+            "match_reason": "={{ $json.matchReason }}",
+            "recommendation": "={{ $json.recommendation }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "candidate_name",
+              "displayName": "candidate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "years_of_experience",
+              "displayName": "years_of_experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "array",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "match_score",
+              "displayName": "match_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "match_reason",
+              "displayName": "match_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e06a7ea7-6948-43ed-b8f6-5244bda5af2a",
+      "name": "Store Shortlisted in Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        19664,
+        -112
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fQUSRVXxA9s7XSUj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "name",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "name",
+          "value": "resume_screening_results"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "candidate_name": "={{ $json.candidateName }}",
+            "email": "={{ $json.email }}",
+            "phone": "={{ $json.phone }}",
+            "years_of_experience": "={{ $json.yearsOfExperience }}",
+            "skills": "={{ $json.skills.split(',').map(s => s.trim()) }}",
+            "match_score": "={{ $json.matchScore }}",
+            "match_reason": "={{ $json.matchReason }}",
+            "recommendation": "={{ $json.recommendation }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "candidate_name",
+              "displayName": "candidate_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "years_of_experience",
+              "displayName": "years_of_experience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "array",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "match_score",
+              "displayName": "match_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "match_reason",
+              "displayName": "match_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "recommendation",
+              "displayName": "recommendation",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "8a3827c4-46cd-432c-981e-dfffa1f1ce9f",
+      "name": "Store Rejected in Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        19680,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "fQUSRVXxA9s7XSUj",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "N/A",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "Not Available",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "id-4",
+              "leftValue": "={{ $json.email }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "id-5",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "id": "7e6afe35-c1cb-4125-880c-c3d22abf1777",
+      "name": "Validate Email - Shortlisted",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        19920,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "id-1",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "N/A",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "id-2",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "Not Available",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "id-3",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "null",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "id-4",
+              "leftValue": "={{ $json.email }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            },
+            {
+              "id": "id-5",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "885b45e4-10be-45d8-83a1-f8f193112a71",
+      "name": "Validate Email - Rejected",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        19936,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n1. Stores candidate results permanently.\n\n2. What is stored:\nName\nEmail\nSkills\nMatch score\nRecommendation\nTimestamp.\n\n3. Why this node is needed:\nAudit & tracking\nHR reporting\nATS integration\nCompliance.",
+        "height": 528,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        19616,
+        224
+      ],
+      "typeVersion": 1,
+      "id": "45943fab-83a4-42c2-8493-b0b6034c4a0b",
+      "name": "Sticky Note9"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Resume Submission Form": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Content (PDF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "AI Scoring / JD Match1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON Output": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Scoring / JD Match1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Scoring / JD Match1": {
+      "main": [
+        [
+          {
+            "node": "Flatten AI Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten AI Output": {
+      "main": [
+        [
+          {
+            "node": "Decision / Shortlist Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision / Shortlist Logic": {
+      "main": [
+        [
+          {
+            "node": "Store Shortlisted in Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Store Rejected in Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Scoring / JD Match1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Resume Content (PDF)": {
+      "main": [
+        [
+          {
+            "node": "Validate Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Shortlisted in Database": {
+      "main": [
+        [
+          {
+            "node": "Validate Email - Shortlisted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Rejected in Database": {
+      "main": [
+        [
+          {
+            "node": "Validate Email - Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Email - Shortlisted": {
+      "main": [
+        [
+          {
+            "node": "Send Shortlisted Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Validate Email - Rejected": {
+      "main": [
+        [
+          {
+            "node": "Send Rejected Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0fd842c4-b61c-4abc-bbf0-871c4112e250",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6dccd216326a4b9babf27c39dfce471b3fba8cb2e7f124c62c557dab5cc2c6fe"
+  },
+  "id": "mNjXfOIbCOXIN4Q0",
+  "tags": []
+}
