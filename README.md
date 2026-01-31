@@ -139,11 +139,3 @@ This JSON is then parsed and used for decision‑making in n8n.
 
 ---
 
-## 📸 Screenshots
-
-You can add screenshots like this (optional):
-
-```markdown
-![n8n Workflow](./images/workflow.png)
-![Execution Log](./images/execution.png)
-
