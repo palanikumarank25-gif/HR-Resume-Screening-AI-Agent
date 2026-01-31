@@ -12,10 +12,10 @@ An **Agentic AI workflow built in n8n** that automates HR resume screening:
 
 ## ✨ Key Features
 
-- 📄 **Automatic resume parsing** (PDF/Doc → structured text)
+- 📄 **resume parsing** (PDF/Doc → structured text)
 - 🧠 **AI scoring** against JD (skills, experience, relevance)
 - ✅ **Shortlisted vs Rejected decision logic**
-- 🗄️ **Stores candidates in a database / Google Sheet**
+- 🗄️ **Stores candidates in a PostgerSql database**
 - 📬 **Sends custom emails** to:
   - Shortlisted candidates
   - Rejected candidates (with polite message)
@@ -27,7 +27,7 @@ An **Agentic AI workflow built in n8n** that automates HR resume screening:
 
 - **n8n** (workflow automation)
 - **LLM** (OpenAI / Gemini via n8n AI nodes)
-- **PostgreSQL / Google Sheets** (candidate database)
+- **PostgreSQL** (candidate database)
 - **Gmail** (email notifications)
 
 ---
@@ -37,7 +37,7 @@ An **Agentic AI workflow built in n8n** that automates HR resume screening:
 High‑level flow:
 
 1. **Resume Submitted / Collected**  
-   - HR uploads candidate resume details into a **Google Sheet / Form**.
+   - HR uploads candidate resume details into a **Form**.
 
 2. **Extract Resume Content**  
    - Node reads the resume text (name, email, phone, skills, experience).
@@ -85,10 +85,10 @@ High‑level flow:
 
 ### 1. Prerequisites
 
-- n8n (cloud or self‑hosted)
+- n8n (cloud)
 - API key for your LLM (OpenAI / Gemini)
 - Gmail credentials (for sending emails)
-- Database or Google Sheet for storage
+- Database storage
 
 ---
 
@@ -106,8 +106,8 @@ High‑level flow:
 In the workflow:
 
 - Set your **AI credential** (OpenAI / Gemini).
-- Set **Gmail** or SMTP credentials.
-- Set **Database / Google Sheets** credential.
+- Set **Gmail**.
+- Set **PostgerSql Database** credential.
 - Update any environment variables if used.
 
 ---
