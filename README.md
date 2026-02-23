@@ -26,7 +26,7 @@ An **Agentic AI workflow built in n8n** that automates HR resume screening:
 ## 🏗️ Tech Stack
 
 - **n8n** (workflow automation)
-- **LLM** (OpenAI / Gemini via n8n AI nodes)
+- **LLM** (OpenAI)
 - **PostgreSQL** (candidate database)
 - **Gmail** (email notifications)
 
