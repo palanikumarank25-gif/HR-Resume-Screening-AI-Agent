@@ -86,7 +86,7 @@ High‑level flow:
 ### 1. Prerequisites
 
 - n8n (cloud)
-- API key for your LLM (OpenAI / Gemini)
+- API key for your LLM (OpenAI)
 - Gmail credentials (for sending emails)
 - Database storage
 
@@ -105,7 +105,7 @@ High‑level flow:
 
 In the workflow:
 
-- Set your **AI credential** (OpenAI / Gemini).
+- Set your **AI credential** (OpenAI).
 - Set **Gmail**.
 - Set **PostgerSql Database** credential.
 - Update any environment variables if used.
