@@ -1,141 +1,139 @@
-# HR Resume Screening Agentic AI 🤖
+# Nexxora HR Resume Screening AI
 
-An **Agentic AI workflow built in n8n** that automates HR resume screening:
+Enterprise-ready Django + static frontend system for:
+- Bulk recursive resume ingestion from local dump paths
+- Auto profile bucketing
+- Vector + rule hybrid JD matching
+- RAG retrieval across resume chunks
+- Candidate lifecycle lock/unlock (selected pool exclusion)
+- Interview campaign slot scheduling with anti-double-booking guard
+- Token-based login/logout with unified workspace UI
 
-- Reads resumes
-- Matches them against a Job Description (JD)
-- Shortlists / rejects candidates
-- Stores results in a database
-- Sends personalised emails to candidates
+## Architecture (Implemented)
 
----
+1. Ingestion layer
+- Endpoint: `POST /api/ingest/path/`
+- Recursively scans folders for PDF/DOCX/DOC/image files
+- Stores run + per-file status in:
+  - `ResumeIngestionRun`
+  - `ResumeIngestionItem`
 
-## ✨ Key Features
+2. Resume intelligence layer
+- Extracts candidate profile (name/contact/skills/experience/role)
+- Auto assigns `ProfileBucket` (tree-compatible model with parent support)
+- Stores:
+  - `Candidate` structured data + lifecycle state
+  - `ResumeChunk` chunked text for RAG
+  - document/chunk embeddings
 
-- 📄 **resume parsing** (PDF/Doc → structured text)
-- 🧠 **AI scoring** against JD (skills, experience, relevance)
-- ✅ **Shortlisted vs Rejected decision logic**
-- 🗄️ **Stores candidates in a PostgerSql database**
-- 📬 **Sends custom emails** to:
-  - Shortlisted candidates
-  - Rejected candidates (with polite message)
-- 📊 **Transparent logs** of every AI decision
+3. Matching layer
+- Endpoint: `POST /api/screenings/`
+- Pipeline: bucket inference -> vector scoring -> rule reranking
+- Persists screening runs/matches:
+  - `JDScreeningRun`
+  - `JDScreeningMatch`
+  - also upserts `JobMatch` for persistent job dashboards
 
----
+4. Workflow automation layer
+- Lifecycle endpoint: `POST /api/candidates/<candidate_id>/lifecycle/`
+  - actions: `select`, `reject`, `unlock`
+- Selected candidates are locked out from future matching until unlocked
 
-## 🏗️ Tech Stack
+5. Interview scheduling layer
+- Campaign endpoint: `POST /api/interview-campaigns/`
+- Auto slot generation + guarded booking:
+  - `POST /api/interview-slots/book/`
+- Booking uses transactional lock to prevent two candidates booking same slot
+- Invitation links:
+  - `POST /api/interview-campaigns/<campaign_id>/send-invitations/`
+  - `GET /api/public/invitations/<token>/slots/`
+  - `POST /api/public/invitations/<token>/book/`
 
-- **n8n** (workflow automation)
-- **LLM** (OpenAI)
-- **PostgreSQL** (candidate database)
-- **Gmail** (email notifications)
+6. RAG question answering
+- Endpoint: `POST /api/rag/query/`
+- Retrieves top chunks by vector similarity
+- Optional LLM answer generation if `OPENAI_API_KEY` is configured
 
----
+7. Async execution (Celery-ready)
+- Ingestion and screening endpoints accept `run_async=true`
+- Default local behavior uses eager execution (`CELERY_TASK_ALWAYS_EAGER=1`)
 
-## 🧩 Workflow Overview
+## Key Backend Files
 
-High‑level flow:
+- `backend/apps/candidate_app/models.py`
+- `backend/apps/candidate_app/views.py`
+- `backend/apps/candidate_app/tasks.py`
+- `backend/apps/candidate_app/services/ingestion.py`
+- `backend/apps/candidate_app/services/matching.py`
+- `backend/apps/candidate_app/services/rag.py`
+- `backend/apps/candidate_app/services/scheduling.py`
+- `backend/apps/candidate_app/migrations/0009_resumeingestionrun_alter_candidate_options_and_more.py`
 
-1. **Resume Submitted / Collected**  
-   - HR uploads candidate resume details into a **Form**.
+## Frontend Updates
 
-2. **Extract Resume Content**  
-   - Node reads the resume text (name, email, phone, skills, experience).
+- Complete UI rework:
+  - `frontend/auth.html`
+  - `frontend/app.html`
+  - `frontend/booking.html`
+  - `frontend/app.js`
+  - `frontend/app.css`
+- Legacy pages (`dashboard.html`, `upload.html`, etc.) now redirect to new workspace tabs.
 
-3. **Resume Tidy / Normalisation**  
-   - Cleans up the raw text for the AI model.
+## Setup
 
-4. **Workflow Configuration**  
-   - HR defines:
-     - Target **Job Role**
-     - Required **skills**
-     - Min / Max **years of experience**
-     - Other rules (must‑have keywords, etc.)
+1. Create/activate Python environment
+2. Install deps:
+```bash
+pip install -r backend/requirements.txt
+```
+3. Run migrations:
+```bash
+cd backend
+python manage.py migrate
+```
+4. Start backend:
+```bash
+python manage.py runserver
+```
+Quick start on Windows:
+```bat
+run_localhost.bat
+```
+5. Start frontend static server:
+```bash
+cd ..\frontend
+python -m http.server 5501
+```
+6. Open:
+- `http://127.0.0.1:5501/auth.html`
+- `http://127.0.0.1:5501/app.html`
+- Candidate booking links open `http://127.0.0.1:5501/booking.html?token=...`
 
-5. **AI Scoring – JD Match**  
-   - LLM evaluates candidate vs JD.  
-   - Returns structured JSON:
-     - `matchScore` (0–100)
-     - `matchReason`
-     - extracted `skills`
-     - `recommendation` (Shortlist / Reject)
+Auth API:
+- `POST /api/auth/signup/`
+- `POST /api/auth/login/`
+- `POST /api/auth/logout/`
+- `GET /api/auth/me/`
 
-6. **Decision Node – Shortlist Logic**  
-   - If `matchScore` above threshold → **Shortlisted path**  
-   - Else → **Rejected path**
+7. Optional real async workers:
+```bash
+cd ..\backend
+celery -A hr_resume_ai worker -l info
+```
 
-7. **Store in Database / Sheet**  
-   - Saves candidate record with:
-     - `candidate_name`
-     - `email`
-     - `phone`
-     - `years_of_experience`
-     - `skills`
-     - `matchScore`
-     - `matchReason`
-     - `status` (Shortlisted / Rejected)
+## Environment Variables (Recommended)
 
-8. **Send Emails**  
-   - **Shortlisted Email**: congratulates candidate + next steps.  
-   - **Rejected Email**: polite thanks + optional feedback.
+- `DJANGO_SECRET_KEY`
+- `DJANGO_DEBUG`
+- `DJANGO_ALLOWED_HOSTS`
+- `OPENAI_API_KEY` (optional for LLM answer / OpenAI embeddings)
+- `OPENAI_EMBEDDING_MODEL` (optional, default `text-embedding-3-small`)
+- `DJANGO_TIME_ZONE`
+- `EMAIL_PROVIDER` (`console` or `smtp`)
+- `FRONTEND_BASE_URL`
+- `CELERY_TASK_ALWAYS_EAGER`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
 
----
+## Validated
 
-## 🚀 Getting Started
-
-### 1. Prerequisites
-
-- n8n (cloud)
-- API key for your LLM (OpenAI)
-- Gmail credentials (for sending emails)
-- Database storage
-
----
-
-### 2. Import the Workflow
-
-1. Download the file:  
-   **`Agentic AI HR-Resume Screening workflow.json`** (in this repo).
-2. In n8n, go to **Workflows → Import from file**.
-3. Select the JSON file and import.
-
----
-
-### 3. Configure Credentials in n8n
-
-In the workflow:
-
-- Set your **AI credential** (OpenAI).
-- Set **Gmail**.
-- Set **PostgerSql Database** credential.
-- Update any environment variables if used.
-
----
-
-### 4. Customise for Your JD
-
-In the **Workflow Configuration** node, edit:
-
-- Job title
-- Required skills
-- Experience range
-- Shortlisting threshold (e.g. `matchScore >= 70`)
-
----
-
-## 🧠 AI Prompt Logic (Summary)
-
-The AI model is prompted to:
-
-1. Read candidate details (skills, experience, etc.).
-2. Compare them with the job requirements.
-3. Return **STRICT JSON** with:
-   - `matchScore`
-   - `matchReason`
-   - `skills`
-   - `recommendation`
-
-This JSON is then parsed and used for decision‑making in n8n.
-
----
-
+- `python manage.py check` passes
+- `python manage.py test apps.candidate_app` passes (4 tests)
