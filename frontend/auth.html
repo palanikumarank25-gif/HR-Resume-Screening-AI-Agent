@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexxora HR | Secure Login</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <section class="hero">
+            <h1>Nexxora HR Intelligence Cloud</h1>
+            <p>
+                Enterprise resume ingestion, vector screening, candidate lifecycle orchestration,
+                and interview automation in one secure workspace.
+            </p>
+            <div class="card" style="margin-top:1rem; background:rgba(255,255,255,0.65);">
+                <b>What's built in</b>
+                <p class="hint" style="margin-top:0.5rem;">
+                    Recursive dump ingestion, JD ranker, RAG answers, slot booking links,
+                    shortlist/selected locking, and analytics.
+                </p>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="login">Login</button>
+                <button class="tab-btn" data-tab="signup">Sign Up</button>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 1rem; padding: 0 0.5rem;">
+                <span id="backend-status-indicator" class="status-dot offline"></span>
+                <span class="status-text" style="color: var(--muted); font-size: 0.7rem;">System Status</span>
+            </div>
+
+            <form id="login-form" class="stack">
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button class="btn btn-primary" type="submit">Login To Workspace</button>
+            </form>
+
+            <form id="signup-form" class="stack" style="display:none;">
+                <div class="field">
+                    <label>Name</label>
+                    <input type="text" id="signup-name" required>
+                </div>
+                <div class="field">
+                    <label>Email</label>
+                    <input type="email" id="signup-email" required>
+                </div>
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" id="signup-password" required>
+                </div>
+                <button class="btn btn-primary" type="submit">Create Account</button>
+            </form>
+
+            <p id="auth-message" class="hint" style="margin-top:1rem;"></p>
+        </section>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
+
+

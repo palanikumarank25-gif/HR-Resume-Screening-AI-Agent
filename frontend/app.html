@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexxora HR | Agentic Workspace</title>
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app-shell">
+    <header class="app-topbar">
+        <div class="brand-wrap">
+            <div class="brand-logo">NX</div>
+            <div>
+                <h1>Nexxora HR Agentic Platform</h1>
+                <p>Enterprise resume intelligence and hiring automation</p>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <div class="user-chip">
+                <span id="backend-status-indicator" class="status-dot offline"></span>
+                <span class="status-text">Backend</span>
+            </div>
+            <div class="user-chip" id="topbar-user-chip">Signed in</div>
+            <button id="logout-btn" class="btn btn-danger">Logout</button>
+        </div>
+    </header>
+
+    <nav class="app-nav">
+        <button data-view="overview">Overview</button>
+        <button data-view="ingestion">Resume Upload</button>
+        <button data-view="buckets">Talent Pools</button>
+        <button data-view="jdstudio">Job Description</button>
+        <button data-view="screening">AI Screening</button>
+        <button data-view="candidates">Candidates</button>
+        <button data-view="interviews">Interviews</button>
+        <button data-view="analytics">Analytics</button>
+        <button data-view="settings">Settings</button>
+    </nav>
+
+    <main class="workspace">
+        <section id="view-overview" class="view active">
+            <div class="hero-panel">
+                <h2 id="view-title">Executive Overview</h2>
+                <p id="view-subtitle">Real-time recruitment operations and AI agent activity.</p>
+            </div>
+            <div class="kpi-grid-4">
+                <article class="kpi-card"><span>Candidates</span><strong id="kpi-candidates">0</strong></article>
+                <article class="kpi-card"><span>Buckets</span><strong id="kpi-buckets">0</strong></article>
+                <article class="kpi-card"><span>Active JDs</span><strong id="kpi-jobs">0</strong></article>
+                <article class="kpi-card"><span>Screening Runs</span><strong id="kpi-runs">0</strong></article>
+                <article class="kpi-card"><span>Shortlisted</span><strong id="kpi-shortlisted">0</strong></article>
+                <article class="kpi-card"><span>Selected</span><strong id="kpi-selected">0</strong></article>
+                <article class="kpi-card"><span>Booked Interviews</span><strong id="kpi-booked">0</strong></article>
+                <article class="kpi-card"><span>Upcoming Interviews</span><strong id="kpi-upcoming">0</strong></article>
+            </div>
+            <div class="split-grid">
+                <div class="panel">
+                    <h3>Recent Agent Activity</h3>
+                    <div id="activity-list" class="activity-list"></div>
+                </div>
+                <div class="panel">
+                    <h3>Top Buckets</h3>
+                    <div id="overview-buckets" class="stack"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-ingestion" class="view">
+            <div class="split-grid">
+                <div class="panel">
+                    <h3>Bulk Path Ingestion</h3>
+                    <div class="form-group-title">Server-Side Ingestion</div>
+                    <div class="field"><label>Local Source Path</label><input id="ingest-path" type="text" value="C:\Users\palan\Documents\Resumes PDF" placeholder="e.g. C:\Data\Resumes"></div>
+                    <div class="field"><label>Max Files to Process</label><input id="ingest-max-files" type="number" placeholder="Leave blank for full recursive dump"></div>
+                    <div class="row-actions" style="margin-top: 1rem; border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 1.2rem;">
+                        <button id="ingest-run-sync" class="btn btn-primary">Start Path Ingestion</button>
+                    </div>
+                    <p class="hint">For large volumes (10,000+), ingestion auto-queues in background mode. Ensure path is accessible by the server.</p>
+                    <p id="ingest-message" class="hint"></p>
+                </div>
+                
+                <div class="panel" style="background: rgba(15, 23, 42, 0.03); border: 1px solid rgba(148, 163, 184, 0.2);">
+                    <div class="code-header">
+                        <h3>API Ingestion SDK</h3>
+                        <button id="copy-sdk-btn" class="btn-copy">Copy Code</button>
+                    </div>
+                    <div class="form-group-title" style="color: #475569; margin-bottom: 0.8rem;">Automated Pipeline</div>
+                    <p class="hint">Use this boilerplate for programmatic resume injection via the Nexxora API.</p>
+                    <pre class="code-block" id="ingest-sdk-python" style="background: #0f172a; color: #f8fafc; border-radius: 8px; padding: 1.2rem; font-size: 0.85rem; border: 1px solid rgba(255,255,255,0.1); overflow-x: auto; max-height: 250px;"></pre>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>Direct File Upload</h3>
+                <div class="form-group-title">Manual Ingestion</div>
+                
+                <div id="drop-zone" class="drop-zone">
+                    <strong>Drag & Drop Resumes Here</strong>
+                    <span>or click to browse from your computer</span>
+                    <input id="ingest-file-upload" type="file" multiple accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" style="display: none;">
+                </div>
+
+                <div class="row-actions">
+                    <button id="ingest-upload-sync" class="btn btn-primary">Process Uploads</button>
+                    <button id="ingest-upload-async" class="btn btn-secondary">Queue Background Run</button>
+                </div>
+                <p class="hint">Supported formats: PDF, DOCX, DOC, TXT, Image. Max size: 25MB per file.</p>
+                <p id="upload-message" class="hint"></p>
+            </div>
+
+            <div class="panel table-panel">
+                <h3>Recent Ingestion Runs</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Run ID</th>
+                                <th>Status</th>
+                                <th>Source Type</th>
+                                <th>Progress</th>
+                                <th>Success</th>
+                                <th>Failed</th>
+                                <th>Skipped</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ingestion-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-buckets" class="view">
+            <div class="panel">
+                <h3>Profile Buckets (Auto Growth)</h3>
+                <p class="hint">System auto-routes resumes to existing buckets or creates new buckets for unseen profiles.</p>
+                <div class="field"><label>Search Bucket</label><input id="bucket-search" type="text" placeholder="e.g. Data Scientist"></div>
+            </div>
+            <div class="panel table-panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Bucket Name</th>
+                                <th>Resumes</th>
+                                <th>Keywords</th>
+                                <th>Role Samples</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bucket-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-jdstudio" class="view">
+            <div class="split-grid">
+                <div class="panel">
+                    <h3>JD Authoring + AI Enhancement</h3>
+                    <div class="form-group-title">Job Details</div>
+                    <div class="field"><label>Job Title</label><input id="jd-title" placeholder="e.g. Senior Frontend Engineer"></div>
+                    <div class="field"><label>Raw JD / Requirements</label><textarea id="jd-raw" rows="8" placeholder="Paste your internal job description or requirements here..."></textarea></div>
+                    
+                    <div class="row-actions" style="margin-top: 1rem; border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 1.2rem;">
+                        <button id="jd-enhance-btn" class="btn btn-primary">AI Enhance JD</button>
+                        <button id="jd-save-btn" class="btn btn-secondary">Save JD</button>
+                    </div>
+                    <p id="jd-message" class="hint"></p>
+                </div>
+                
+                <div class="panel" style="background: rgba(2, 132, 199, 0.02); border: 1px dashed rgba(2, 132, 199, 0.2);">
+                    <h3>Enhanced JD Output (Preview)</h3>
+                    <div class="form-group-title" style="color: #0369a1;">Extraction Results</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="field"><label>Generated JD ID</label><input id="jd-id-preview" readonly style="background: rgba(255,255,255,0.5);"></div>
+                        <div class="field"><label>Min Experience (Years)</label><input id="jd-min-exp-preview" type="number" readonly style="background: rgba(255,255,255,0.5);"></div>
+                    </div>
+                    <div class="field"><label>Extracted Skills</label><input id="jd-skills-preview" readonly style="background: rgba(255,255,255,0.5);"></div>
+                    <div class="field"><label>Enhanced AI Text</label><textarea id="jd-enhanced" rows="10" readonly style="background: rgba(255,255,255,0.5); font-style: italic;"></textarea></div>
+                    <div class="hint">The AI-enhanced version is optimized for neural & keyword matching. Review before saving.</div>
+                </div>
+            </div>
+            
+            <div class="panel table-panel">
+                <h3>JD Registry</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>JD ID</th>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Skills</th>
+                                <th>Min Exp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobs-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-screening" class="view">
+            <div class="panel">
+                <h3>Agentic Screening Run</h3>
+                <div class="screen-groups">
+                    <div class="screen-group-row">
+                        <div class="field"><label>Select Job Description (JD)</label>
+                            <select id="screen-job-select"><option value="">Custom JD mode</option></select>
+                        </div>
+                        <div class="field"><label>Custom JD Title (for display)</label>
+                            <input id="screen-jd-title" placeholder="e.g. Senior Frontend Engineer">
+                        </div>
+                    </div>
+                    <div class="screening-toolbar">
+                        <div class="field"><label>Top K Candidates</label>
+                            <input id="screen-top-k" type="number" value="40" min="1" max="500">
+                        </div>
+                        <div class="field"><label>Minimum Match Score (%)</label>
+                            <input id="screen-min-score" type="number" value="0" min="0" max="100">
+                        </div>
+                        <div class="field"><label>Matching Strategy</label>
+                            <select id="screen-strategy">
+                                <option value="hybrid">Hybrid (Neural + Keyword)</option>
+                                <option value="vector">Vector Only (Neural)</option>
+                                <option value="rule">Keyword Priority (Boolean)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field" style="margin-bottom: 1.5rem;">
+                    <label>Job Description Text (Paste full JD here if 'Custom JD mode' is selected)</label>
+                    <textarea id="screen-jd-text" rows="8" placeholder="Enter roles, responsibilities, and requirements..."></textarea>
+                </div>
+
+                <div class="row-actions" style="border-top: 1px solid rgba(148, 163, 184, 0.15); padding-top: 1.2rem;">
+                    <button id="screen-run-btn" class="btn btn-primary">Start Vector Screening</button>
+                    <button id="screen-run-agentic-btn" class="btn btn-secondary">Agentic Reasoning Loop</button>
+                    <button id="screen-run-async-btn" class="btn btn-secondary">Queue Background Run</button>
+                </div>
+                <p id="screen-message" class="hint"></p>
+            </div>
+            <div class="split-grid">
+                <div class="panel">
+                    <h3>Agent Trace</h3>
+                    <div id="agent-trace" class="stack"></div>
+                </div>
+                <div class="panel">
+                    <h3>Run Analytics</h3>
+                    <div id="screen-analytics" class="stack"></div>
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Top Matching Candidates</h3>
+                <div id="screen-results-cards" class="candidate-card-grid"></div>
+            </div>
+        </section>
+
+        <section id="view-candidates" class="view">
+            <div class="panel">
+                <h3>Candidate Decision Center</h3>
+                <div class="candidates-toolbar">
+                    <div class="field"><label>Search Candidates</label><input id="candidate-search" type="text" placeholder="Name or email..."></div>
+                    <div class="field"><label>Result Status</label><select id="candidate-status-filter"><option value="">All Statuses</option><option value="Shortlisted">Shortlisted</option><option value="Rejected">Rejected</option><option value="Pass Interview">Pass Interview</option></select></div>
+                    <div class="field"><label>Job Filter</label><select id="candidate-job-filter"><option value="">All JDs</option></select></div>
+                    <div class="field"><label>&nbsp;</label><button id="candidate-refresh-btn" class="btn btn-secondary" style="width: 120px;">Refresh</button></div>
+                </div>
+            </div>
+            <div class="panel table-panel">
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Candidate Info</th><th>Applied Role (JD)</th><th>AI Match Score</th><th>AI Consumed</th><th>Current Status</th><th>Reviewer Note</th><th>Actions</th></tr></thead>
+                        <tbody id="candidates-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-interviews" class="view">
+            <div class="split-grid">
+                <div class="panel">
+                    <h3>Interview Planner</h3>
+                    
+                    <div class="form-group-title">General Info</div>
+                    <div class="field"><label>Campaign Title</label><input id="campaign-title" placeholder="e.g. Q1 Frontend Hire Drive"></div>
+                    <div class="field"><label>Location / Venue</label><input id="campaign-location" placeholder="e.g. Remote / Zoom / Office"></div>
+                    <div class="field"><label>Meeting Link</label><input id="campaign-link" placeholder="https://zoom.us/j/..."></div>
+                    
+                    <div class="form-group-title">Timeframe & Slots</div>
+                    <div class="screening-toolbar">
+                        <div class="field"><label>Start Date</label><input id="campaign-start-date" type="date"></div>
+                        <div class="field"><label>Duration (days)</label><input id="campaign-duration-days" type="number" value="5"></div>
+                        <div class="field"><label>Slot Size (min)</label><input id="campaign-slot-min" type="number" value="30"></div>
+                    </div>
+                    
+                    <div class="form-group-title">Workday & Availability</div>
+                    <div class="screening-toolbar">
+                        <div class="field"><label>Workday Start</label><input id="campaign-day-start" type="time" value="09:00"></div>
+                        <div class="field"><label>Workday End</label><input id="campaign-day-end" type="time" value="18:00"></div>
+                    </div>
+                    <div class="field"><label>Holidays (comma-separated YYYY-MM-DD)</label><input id="campaign-holidays" placeholder="2024-12-25, 2024-01-01"></div>
+                    
+                    <div class="row-actions" style="border-top: 1px solid rgba(148, 163, 184, 0.15); padding-top: 1.2rem; margin-top: 1.2rem;">
+                        <button id="campaign-plan-btn" class="btn btn-secondary">Preview Plan</button>
+                        <button id="campaign-create-btn" class="btn btn-primary">Create Campaign</button>
+                    </div>
+                    <p id="campaign-message" class="hint"></p>
+                </div>
+                <div class="panel">
+                    <h3>Bulk Invitation Agent</h3>
+                    <div class="field"><label>Target Campaign</label><select id="invite-campaign-select"></select></div>
+                    <div class="field" style="margin-top: 1rem;"><label>Candidate IDs (one per line or comma-separated)</label>
+                        <textarea id="invite-candidate-ids" rows="12" placeholder="Paste IDs here..."></textarea>
+                    </div>
+                    <div class="row-actions" style="margin-top: 1.5rem;">
+                        <button id="invite-send-btn" class="btn btn-primary" style="flex:1;">Send Invitations</button>
+                        <button id="invite-send-async-btn" class="btn btn-secondary" style="flex:1;">Queue Async</button>
+                    </div>
+                    <p id="invite-message" class="hint"></p>
+                </div>
+            </div>
+            <div class="panel table-panel">
+                <h3>Invitation Tracker</h3>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Candidate</th><th>Status</th><th>Sent</th><th>Booked</th><th>Booking Link</th></tr></thead>
+                        <tbody id="invitations-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-analytics" class="view">
+            <div class="kpi-grid">
+                <article class="kpi-card"><span>Total Screening</span><strong id="ana-volume">0</strong></article>
+                <article class="kpi-card"><span>Shortlisted</span><strong id="ana-shortlisted">0</strong></article>
+                <article class="kpi-card"><span>Rejected</span><strong id="ana-rejected">0</strong></article>
+                <article class="kpi-card"><span>Hired / Selected</span><strong id="ana-selected">0</strong></article>
+                <article class="kpi-card"><span>Total AI Cost</span><strong id="ana-cost">$0.00</strong></article> 
+                <article class="kpi-card"><span>Tokens Consumed</span><strong id="ana-tokens">0</strong></article> 
+            </div>
+            <div class="split-grid">
+                <div class="panel"><h3>Top Skills</h3><div id="ana-skills" class="stack"></div></div>
+                <div class="panel"><h3>Resumes Per JD</h3><div id="ana-jobs" class="stack"></div></div>
+            </div>
+        </section>
+
+        <section id="view-settings" class="view">
+            <div class="panel">
+                <h3>System Controls</h3>
+                
+                <div class="form-group-title">AI Engine</div>
+                <div class="screening-toolbar">
+                    <div class="field">
+                        <label>AI Model</label>
+                        <select id="set-ai-model">
+                            <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cheap)</option>
+                            <option value="gpt-4o">GPT-4o (High Precision)</option>
+                            <option value="o1-mini">o1-mini (Agile Reasoning)</option>
+                            <option value="o1-preview">o1-preview (Deep Reasoning)</option>
+                            <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Vector Provider</label><select id="set-vector-provider"><option value="hashing">hashing</option><option value="sentence_transformer">sentence_transformer</option><option value="openai">openai</option></select></div>
+                    <div class="field"><label>Default Strategy</label><select id="set-screen-strategy"><option value="hybrid">hybrid</option><option value="vector">vector</option><option value="rule">rule</option></select></div>
+                    <div class="field"><label>Parsing Depth</label><select id="set-parsing-depth"><option value="Fast">Fast</option><option value="Deep">Deep</option></select></div>
+                </div>
+                
+                <div class="form-group-title">Advanced Automation & Thresholds</div>
+                <div class="screening-toolbar">
+                    <div class="field"><label>Shortlist Threshold (%)</label><input id="set-shortlist" type="number" min="0" max="100"></div>
+                    <div class="field"><label>Reject Threshold (%)</label><input id="set-reject" type="number" min="0" max="100"></div>
+                    <div class="field"><label>Enable JD Enhancement</label><select id="set-jd-enh"><option value="true">Enable</option><option value="false">Disable</option></select></div>
+                    <div class="field"><label>Enable LLM Bucket Enrichment</label><select id="set-bucket-llm"><option value="true">Enable</option><option value="false">Disable</option></select></div>
+                </div>
+                
+                <div class="row-actions" style="margin-top: 1.5rem; border-top: 1px solid rgba(148, 163, 184, 0.1); padding-top: 1.2rem;">
+                    <button id="settings-save-btn" class="btn btn-primary" style="min-width: 160px;">Save Settings</button>
+                    <p id="settings-message" class="hint" style="margin: 0; align-self: center;"></p>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div id="candidate-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid rgba(148,163,184,0.15); padding-bottom:0.8rem;">
+            <div>
+                <h3 id="candidate-modal-title" style="margin:0;">Candidate Preview</h3>
+                <div id="candidate-modal-meta" class="hint"></div>
+            </div>
+            <button id="candidate-modal-close" class="btn btn-secondary">Close</button>
+        </div>
+        
+        <div class="modal-grid">
+            <div class="modal-frame-wrap">
+                <iframe id="candidate-modal-frame" title="Candidate Resume Preview"></iframe>
+            </div>
+            <div class="modal-details">
+                <div class="field">
+                    <label>Reviewer Notes / Assessment</label>
+                    <textarea id="modal-reviewer-note" placeholder="Enter your internal feedback, interview highlights, or reasoning for selection/rejection..."></textarea>
+                </div>
+                
+                <div style="margin-top:auto; padding-top:1.5rem; border-top:1px solid rgba(148,163,184,0.15);">
+                    <label style="display:block; font-size:0.85rem; font-weight:800; color:var(--muted); margin-bottom:0.8rem;">Update Candidate Status</label>
+                    <div class="row-actions">
+                        <button class="btn btn-primary" data-modal-action="selected" style="flex:1;">Select for Hire</button>
+                        <button class="btn btn-secondary" data-modal-action="shortlisted" style="flex:1;">Shortlist</button>
+                        <button class="btn btn-secondary" data-modal-action="rejected" style="flex:1; background:rgba(220,38,38,0.1); color:var(--danger);">Reject</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
